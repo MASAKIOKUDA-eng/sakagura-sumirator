@@ -1,4 +1,22 @@
 import type { BrewResult, Decisions, OrderId } from '../../shared/engine';
+import { accessToken, forgetSession } from './auth';
+
+/** API のエラー。401 はログインが必要（またはセッション切れ） */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+// CloudFront OAC が Authorization ヘッダーを使うため、独自ヘッダーでトークンを送る
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await accessToken();
+  if (!token) throw new ApiError('ログインが必要です', 401);
+  return { 'x-auth-token': token };
+}
 
 export interface BrewSummary {
   id: string;
@@ -33,13 +51,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok || data === null) {
     const msg = (data as { message?: string } | null)?.message;
-    throw new Error(msg ?? `記録サーバーに接続できませんでした（${res.status}）`);
+    if (res.status === 401) forgetSession();
+    throw new ApiError(msg ?? `記録サーバーに接続できませんでした（${res.status}）`, res.status);
   }
   return data as T;
 }
 
 export function listBrews(limit = 20) {
   return request<{ items: BrewSummary[] }>(`/api/brews?limit=${limit}`);
+}
+
+export async function listMine() {
+  return request<{ items: BrewSummary[] }>('/api/me/brews', { headers: await authHeaders() });
 }
 
 export function ranking() {
@@ -56,7 +79,7 @@ export async function saveBrew(payload: { brewerName: string; sakeName: string; 
   const hash = await sha256Hex(body);
   return request<BrewRecord>('/api/brews', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-amz-content-sha256': hash },
+    headers: { 'content-type': 'application/json', 'x-amz-content-sha256': hash, ...(await authHeaders()) },
     body,
   });
 }

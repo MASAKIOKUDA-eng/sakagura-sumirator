@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import {
+  Aws,
   CfnOutput,
   Duration,
   RemovalPolicy,
@@ -7,6 +8,7 @@ import {
   type StackProps,
   aws_cloudfront as cloudfront,
   aws_cloudfront_origins as origins,
+  aws_cognito as cognito,
   aws_dynamodb as dynamodb,
   aws_lambda as lambda,
   aws_lambda_nodejs as nodejs,
@@ -19,6 +21,10 @@ import type { Construct } from 'constructs';
 export interface SakaguraStackProps extends StackProps {
   /** true のとき、スタック削除で記録（DynamoDB）も削除する */
   readonly destroyData?: boolean;
+  /** CloudFront に関連付ける WAF Web ACL の ARN（us-east-1）。未指定なら WAF なし */
+  readonly webAclArn?: string;
+  /** ローカル開発用に Cognito のコールバックを許可するオリジン */
+  readonly devOrigins?: string[];
 }
 
 export class SakaguraStack extends Stack {
@@ -36,6 +42,29 @@ export class SakaguraStack extends Stack {
       removalPolicy: props.destroyData ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
     });
 
+    // 利用者認証：メールで自己登録。1 万 MAU までは無料枠内
+    const userPool = new cognito.UserPool(this, 'Users', {
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+      standardAttributes: { email: { required: true, mutable: true } },
+      passwordPolicy: { minLength: 10, requireLowercase: true, requireDigits: true, requireUppercase: false, requireSymbols: false },
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      // 日本語に対応したマネージドログイン画面を使うため Essentials（1 万 MAU まで無料）
+      featurePlan: cognito.FeaturePlan.ESSENTIALS,
+      userVerification: {
+        emailSubject: '【杜氏の一季】メールアドレスの確認',
+        emailBody: '杜氏の一季へのご登録ありがとうございます。確認コード: {####}',
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+      },
+      removalPolicy: props.destroyData ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
+    });
+    const loginDomain = userPool.addDomain('LoginDomain', {
+      // 全世界で一意にするため、アカウント ID とコンストラクトのハッシュを含める
+      cognitoDomain: { domainPrefix: `sakagura-${Aws.ACCOUNT_ID}-${this.node.addr.slice(0, 8)}` },
+      managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
+    });
+
     const logGroup = new logs.LogGroup(this, 'ApiLogs', {
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY,
@@ -49,7 +78,7 @@ export class SakaguraStack extends Stack {
       memorySize: 256,
       timeout: Duration.seconds(10),
       logGroup,
-      environment: { TABLE_NAME: table.tableName },
+      environment: { TABLE_NAME: table.tableName, USER_POOL_ID: userPool.userPoolId },
       bundling: {
         minify: true,
         sourceMap: false,
@@ -72,6 +101,7 @@ export class SakaguraStack extends Stack {
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       comment: 'sakagura-sumirator',
+      webAclId: props.webAclArn,
       defaultRootObject: 'index.html',
       // 日本のエッジを含む最小の価格クラス
       priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
@@ -104,9 +134,40 @@ export class SakaguraStack extends Stack {
       },
     });
 
-    // ビルド済みフロントエンド（npm run build:web で web/dist に出力）を配置
+    // ログイン画面（Cognito マネージドログイン）用のアプリクライアント。認可コード + PKCE
+    const siteOrigin = `https://${distribution.distributionDomainName}`;
+    const redirectUrls = [`${siteOrigin}/`, ...(props.devOrigins ?? []).map((o) => `${o.replace(/\/$/, '')}/`)];
+    const webClient = userPool.addClient('WebClient', {
+      generateSecret: false,
+      authFlows: { userSrp: true },
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL],
+        callbackUrls: redirectUrls,
+        logoutUrls: redirectUrls,
+      },
+      supportedIdentityProviders: [cognito.UserPoolClientIdentityProvider.COGNITO],
+      accessTokenValidity: Duration.hours(1),
+      idTokenValidity: Duration.hours(1),
+      refreshTokenValidity: Duration.days(30),
+      preventUserExistenceErrors: true,
+    });
+    new cognito.CfnManagedLoginBranding(this, 'LoginBranding', {
+      userPoolId: userPool.userPoolId,
+      clientId: webClient.userPoolClientId,
+      useCognitoProvidedValues: true,
+    });
+
+    // ビルド済みフロントエンド（npm run build:web で web/dist に出力）と、
+    // デプロイ時に決まる認証設定（config.json）を配置
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      sources: [s3deploy.Source.asset(path.join(root, 'web', 'dist'))],
+      sources: [
+        s3deploy.Source.asset(path.join(root, 'web', 'dist')),
+        s3deploy.Source.jsonData('config.json', {
+          authDomain: loginDomain.baseUrl(),
+          clientId: webClient.userPoolClientId,
+        }),
+      ],
       destinationBucket: siteBucket,
       distribution,
       distributionPaths: ['/*'],
@@ -115,5 +176,6 @@ export class SakaguraStack extends Stack {
 
     new CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}` });
     new CfnOutput(this, 'TableName', { value: table.tableName });
+    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
   }
 }
