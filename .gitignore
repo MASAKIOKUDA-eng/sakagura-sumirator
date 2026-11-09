@@ -1,6 +1,7 @@
 node_modules/
 cdk.out/
 web/dist/
+web/public/config.json
 .cdkd/
 *.log
 .DS_Store

@@ -1,10 +1,18 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import type { LambdaFunctionURLEvent, LambdaFunctionURLResult } from 'aws-lambda';
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import type { LambdaFunctionURLEvent } from 'aws-lambda';
+import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { conditionsFromSeed, simulate, validateDecisions, validateSeed } from '../shared/engine';
 
 const TABLE_NAME = process.env.TABLE_NAME ?? '';
+const USER_POOL_ID = process.env.USER_POOL_ID ?? '';
 const PK = 'BREW';
+const userPk = (sub: string) => `USER#${sub}`;
+/**
+ * 認証トークンのヘッダー。CloudFront OAC が Authorization ヘッダーを署名に使うため、
+ * 独自ヘッダーでアクセストークンを受け取る。
+ */
+export const AUTH_HEADER = 'x-auth-token';
 const TTL_SECONDS = 365 * 24 * 60 * 60;
 const SUMMARY_FIELDS = ['sk', 'brewerName', 'sakeName', 'createdAt', 'score', 'rank', 'className', 'orderId'];
 
@@ -12,7 +20,25 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
 
-type Result = LambdaFunctionURLResult & { statusCode: number; body: string };
+// ユーザープールが発行したアクセストークンだけを受け付ける。
+// アプリクライアントはこのプールに 1 つだけ（クライアント ID を渡すとリソースが循環参照になるため null）
+const verifier = USER_POOL_ID
+  ? CognitoJwtVerifier.create({ userPoolId: USER_POOL_ID, tokenUse: 'access', clientId: null })
+  : null;
+
+/** 有効なアクセストークンならユーザー ID（sub）を返す */
+export async function authenticate(event: LambdaFunctionURLEvent): Promise<string | null> {
+  const token = event.headers?.[AUTH_HEADER];
+  if (!verifier || !token || token.length > 4096) return null;
+  try {
+    const payload = await verifier.verify(token);
+    return payload.sub;
+  } catch {
+    return null;
+  }
+}
+
+type Result = { statusCode: number; headers: Record<string, string>; body: string };
 
 const json = (statusCode: number, body: unknown, cacheSeconds = 0): Result => ({
   statusCode,
@@ -53,6 +79,9 @@ function parseBody(event: LambdaFunctionURLEvent): unknown {
 }
 
 async function createBrew(event: LambdaFunctionURLEvent): Promise<Result> {
+  const sub = await authenticate(event);
+  if (!sub) return json(401, { message: '記録するにはログインが必要です' });
+
   const body = parseBody(event) as Record<string, unknown> | null;
   if (!body || typeof body !== 'object') return json(400, { message: 'リクエストの形式が正しくありません' });
 
@@ -82,25 +111,38 @@ async function createBrew(event: LambdaFunctionURLEvent): Promise<Result> {
     score: result.score,
     rank: result.rank,
     className: result.className,
+    userSub: sub,
     expiresAt: Math.floor(now / 1000) + TTL_SECONDS,
   };
+  // 「自分の記録」用に、ユーザー単位のパーティションにも要約を書く（GSI を使わずコストを抑える）
+  const userItem = {
+    pk: userPk(sub),
+    ...Object.fromEntries(SUMMARY_FIELDS.map((f) => [f, item[f as keyof typeof item]])),
+    expiresAt: item.expiresAt,
+  };
   await ddb.send(
-    new PutCommand({ TableName: TABLE_NAME, Item: item, ConditionExpression: 'attribute_not_exists(sk)' }),
+    new TransactWriteCommand({
+      TransactItems: [
+        { Put: { TableName: TABLE_NAME, Item: item, ConditionExpression: 'attribute_not_exists(sk)' } },
+        { Put: { TableName: TABLE_NAME, Item: userItem, ConditionExpression: 'attribute_not_exists(sk)' } },
+      ],
+    }),
   );
   return json(201, toPublic(item));
 }
 
 function toPublic(item: Record<string, unknown>): Record<string, unknown> {
-  const { pk: _pk, sk, expiresAt: _exp, ...rest } = item;
+  // ユーザー ID は公開しない
+  const { pk: _pk, sk, expiresAt: _exp, userSub: _sub, ...rest } = item;
   return { id: sk, ...rest };
 }
 
-async function listRecent(limit: number) {
+async function listRecent(limit: number, pk = PK) {
   const out = await ddb.send(
     new QueryCommand({
       TableName: TABLE_NAME,
       KeyConditionExpression: 'pk = :pk',
-      ExpressionAttributeValues: { ':pk': PK },
+      ExpressionAttributeValues: { ':pk': pk },
       ProjectionExpression: SUMMARY_FIELDS.map((_, i) => `#f${i}`).join(','),
       ExpressionAttributeNames: Object.fromEntries(SUMMARY_FIELDS.map((f, i) => [`#f${i}`, f])),
       ScanIndexForward: false,
@@ -133,6 +175,12 @@ export async function handler(event: LambdaFunctionURLEvent): Promise<Result> {
     const match = path.match(/^\/api\/brews\/([^/]+)$/);
     if (match && method === 'GET') {
       return await getBrew(decodeURIComponent(match[1]));
+    }
+    if (path === '/api/me/brews' && method === 'GET') {
+      const sub = await authenticate(event);
+      if (!sub) return json(401, { message: 'ログインが必要です' });
+      // 利用者ごとの内容のため、キャッシュさせない（no-store）
+      return json(200, { items: await listRecent(50, userPk(sub)) });
     }
     if (path === '/api/ranking' && method === 'GET') {
       const items = await listRecent(200);

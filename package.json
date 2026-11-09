@@ -13,10 +13,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "synth": "npm run build:web && cdkd synth",
-    "diff": "npm run build:web && cdkd diff",
-    "deploy": "npm run build:web && cdkd deploy",
-    "deploy:fast": "npm run build:web && cdkd deploy --no-wait",
-    "destroy": "cdkd destroy",
+    "diff": "npm run build:web && cdkd diff --all",
+    "deploy": "npm run build:web && cdkd deploy --all",
+    "deploy:fast": "npm run build:web && cdkd deploy --all --no-wait",
+    "destroy": "cdkd destroy --all",
     "cdk:synth": "npm run build:web && cdk synth"
   },
   "devDependencies": {
@@ -32,5 +32,8 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "aws-jwt-verify": "^5.2.1"
   }
 }

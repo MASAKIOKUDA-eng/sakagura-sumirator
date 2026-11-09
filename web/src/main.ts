@@ -12,7 +12,8 @@ import {
   simulate,
   validateDecisions,
 } from '../../shared/engine';
-import { type BrewSummary, getBrew, listBrews, ranking, saveBrew } from './api';
+import { ApiError, type BrewSummary, getBrew, listBrews, listMine, ranking, saveBrew } from './api';
+import { authEnabled, currentEmail, initAuth, isLoggedIn, login, logout } from './auth';
 import { barChart, moromiCharts } from './charts';
 import {
   FINISH_STEPS,
@@ -117,6 +118,23 @@ function setNav(route: string) {
   });
 }
 
+function renderAccount() {
+  const box = document.getElementById('account');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!authEnabled()) return;
+  if (isLoggedIn()) {
+    box.append(
+      h(`<span class="account-name" title="${esc(currentEmail() ?? '')}">${esc(currentEmail() ?? 'ログイン中')}</span>`),
+      h('<button class="btn small" type="button" id="logout">ログアウト</button>'),
+    );
+    box.querySelector('#logout')!.addEventListener('click', () => logout());
+  } else {
+    box.append(h('<button class="btn small" type="button" id="login">ログイン</button>'));
+    box.querySelector('#login')!.addEventListener('click', () => void login());
+  }
+}
+
 function focusMain() {
   app.focus({ preventScroll: true });
   window.scrollTo({ top: 0 });
@@ -128,6 +146,7 @@ function route() {
   const hash = location.hash.replace(/^#\/?/, '');
   const [page, arg] = hash.split('/');
   app.innerHTML = '';
+  renderAccount();
   switch (page) {
     case 'brew':
       setNav('brew');
@@ -429,9 +448,23 @@ function renderResultScreen(c: Conditions) {
     </section>`);
   const status = save.querySelector<HTMLElement>('.save-status')!;
   const form = save.querySelector<HTMLFormElement>('#save-form')!;
+  const askLogin = (message: string) => {
+    form.hidden = true;
+    status.innerHTML = '';
+    status.append(
+      h(`<span>${esc(message)}</span>`),
+      h('<button class="btn primary small" type="button">ログイン / 新規登録</button>'),
+    );
+    status.querySelector('button')!.addEventListener('click', () => void login('#/brew'));
+  };
   if (s.savedId) {
     form.hidden = true;
     status.innerHTML = `記録済みです。<a href="#/records/${esc(s.savedId)}">記録を見る</a>`;
+  } else if (!authEnabled()) {
+    form.hidden = true;
+    status.textContent = '記録機能は AWS にデプロイした環境で利用できます。';
+  } else if (!isLoggedIn()) {
+    askLogin('記録帳に残すにはログインが必要です（メールアドレスで無料登録できます）。結果はログイン後もこの画面に残ります。');
   }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -450,6 +483,11 @@ function renderResultScreen(c: Conditions) {
       form.hidden = true;
       status.innerHTML = `記録しました。<a href="#/records/${esc(rec.id)}">記録を見る</a>（このリンクで友人と共有できます）`;
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        renderAccount();
+        askLogin('ログインの有効期限が切れました。もう一度ログインしてください。');
+        return;
+      }
       status.textContent = (err as Error).message;
       btn.disabled = false;
     }
@@ -588,6 +626,7 @@ async function renderRecords() {
       <p class="eyebrow">蔵の記録帳</p>
       <h1>みんなの仕込み</h1>
       <div class="two-col">
+        ${isLoggedIn() ? '<div><h2>自分の記録</h2><div id="mine" class="loading">読み込み中…</div></div>' : ''}
         <div><h2>番付</h2><div id="ranking" class="loading">読み込み中…</div></div>
         <div><h2>最近の記録</h2><div id="recent" class="loading">読み込み中…</div></div>
       </div>
@@ -603,7 +642,11 @@ async function renderRecords() {
     }
     slot.classList.remove('loading');
   };
-  await Promise.all([fill('ranking', ranking, true), fill('recent', () => listBrews(20), false)]);
+  await Promise.all([
+    fill('ranking', ranking, true),
+    fill('recent', () => listBrews(20), false),
+    ...(isLoggedIn() ? [fill('mine', listMine, false)] : []),
+  ]);
 }
 
 async function renderRecord(id: string) {
@@ -621,4 +664,5 @@ async function renderRecord(id: string) {
   }
 }
 
-route();
+// 認証の初期化（ログイン画面からの戻りを含む）を終えてから描画する
+void initAuth().finally(route);
