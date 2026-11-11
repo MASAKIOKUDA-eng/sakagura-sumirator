@@ -158,21 +158,42 @@ export class SakaguraStack extends Stack {
       useCognitoProvidedValues: true,
     });
 
-    // ビルド済みフロントエンド（npm run build:web で web/dist に出力）と、
-    // デプロイ時に決まる認証設定（config.json）を配置
-    new s3deploy.BucketDeployment(this, 'DeploySite', {
+    // ビルド済みフロントエンド（npm run build:web で web/dist に出力）を 2 回に分けて配置する。
+    // 1) JS・CSS・画像：ファイル名に内容のハッシュが付くため、1 年間キャッシュしてよい（immutable）。
+    //    古いファイルも残す（prune: false）。配信中の古い index.html が参照している間に消さないため
+    const siteDir = path.join(root, 'web', 'dist');
+    const assetsDeployment = new s3deploy.BucketDeployment(this, 'DeployAssets', {
+      sources: [s3deploy.Source.asset(siteDir)],
+      destinationBucket: siteBucket,
+      exclude: ['index.html', 'config.json'],
+      prune: false,
+      cacheControl: [
+        s3deploy.CacheControl.setPublic(),
+        s3deploy.CacheControl.maxAge(Duration.days(365)),
+        s3deploy.CacheControl.immutable(),
+      ],
+      memoryLimit: 256,
+    });
+    // 2) index.html と、デプロイ時に決まる認証設定（config.json）：名前が変わらないので毎回確認させる（no-cache）
+    const siteDeployment = new s3deploy.BucketDeployment(this, 'DeploySite', {
       sources: [
-        s3deploy.Source.asset(path.join(root, 'web', 'dist')),
+        s3deploy.Source.asset(siteDir),
         s3deploy.Source.jsonData('config.json', {
           authDomain: loginDomain.baseUrl(),
           clientId: webClient.userPoolClientId,
         }),
       ],
       destinationBucket: siteBucket,
+      exclude: ['*'],
+      include: ['index.html', 'config.json'],
+      prune: false,
+      cacheControl: [s3deploy.CacheControl.noCache()],
       distribution,
       distributionPaths: ['/*'],
       memoryLimit: 256,
     });
+    // 新しい JS・CSS・画像を置いてから index.html を差し替える
+    siteDeployment.node.addDependency(assetsDeployment);
 
     new CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}` });
     new CfnOutput(this, 'TableName', { value: table.tableName });
