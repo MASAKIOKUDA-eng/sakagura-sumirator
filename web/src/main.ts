@@ -14,7 +14,7 @@ import {
 } from '../../shared/engine';
 import { ApiError, type BrewSummary, getBrew, listBrews, listMine, ranking, saveBrew } from './api';
 import { authEnabled, currentEmail, initAuth, isLoggedIn, login, logout } from './auth';
-import { PHASE_ICONS, ROLE_ICONS, heroScene, taru, toji } from './illustrations';
+import { PHASE_ICONS, ROLE_ICONS, heroScene, riceGrain, taru, toji } from './illustrations';
 import { barChart, moromiCharts } from './charts';
 import {
   FINISH_STEPS,
@@ -197,7 +197,7 @@ function renderHome() {
     h(`
     <section class="cards three">
       <a class="card link" href="#/learn"><div class="card-icon">${ROLE_ICONS.koji()}</div><div><h2>杜氏の仕事を知る</h2><p>杜氏と蔵人の役割、酒造りの工程をやさしく解説します。</p></div></a>
-      <a class="card link" href="#/brew"><div class="card-icon">${PHASE_ICONS['醪']()}</div><div><h2>仕込みを体験する</h2><p>約10の判断で一本の酒を醸します。所要時間は5分ほど。</p></div></a>
+      <a class="card link" href="#/brew"><div class="card-icon">${riceGrain('')}</div><div><h2>仕込みを体験する</h2><p>約10の判断で一本の酒を醸します。所要時間は5分ほど。</p></div></a>
       <a class="card link" href="#/records"><div class="card-icon">${PHASE_ICONS['火入れ・貯蔵']()}</div><div><h2>蔵の記録帳</h2><p>みんなが醸した酒の記録と番付を見られます。</p></div></a>
     </section>`),
   );
@@ -530,7 +530,7 @@ function resultView(c: Conditions, r: BrewResult, meta: { sakeName: string; brew
     <section class="panel result">
       <p class="eyebrow">${meta ? '蔵の記録帳' : '皆造（かいぞう）――今季の造りを終えて'}</p>
       <div class="label-card">
-        <div class="label-taru">${taru('', '新酒')}</div>
+        <div class="label-taru">${taru('')}</div>
         <div class="label-main">
           <p class="label-class">${esc(r.className)}</p>
           <p class="label-name">${meta ? esc(meta.sakeName) : '（銘柄未定）'}</p>
@@ -588,7 +588,7 @@ function renderLearn() {
   app.append(
     h(`
     <section class="panel prose">
-      <div class="learn-head"><div><p class="eyebrow">杜氏の仕事を知る</p><h1>杜氏とは</h1></div><div class="learn-toji">${toji()}</div></div>
+      <div class="learn-head"><div><p class="eyebrow">杜氏の仕事を知る</p><h1>杜氏とは</h1></div><div class="learn-toji">${toji('杜氏のイラスト')}</div></div>
       <p><strong>杜氏（とうじ）</strong>は、酒蔵で酒造りを取り仕切る製造の最高責任者です。蔵の持ち主である<strong>蔵元</strong>から「どんな酒を造るか」の注文を受け、
       <strong>蔵人（くらびと）</strong>と呼ばれる職人たちを率いて、米の処理から搾り・貯蔵までのすべてを指揮します。</p>
       <p>酒造りは生き物（麹菌・酵母）相手の仕事です。同じ品種の米でも年によって硬さが違い、冬の寒さも毎年変わります。
@@ -640,7 +640,7 @@ function recordRows(items: BrewSummary[], withRank: boolean): string {
 async function renderRecords() {
   const panel = h(`
     <section class="panel">
-      <div class="records-head"><div><p class="eyebrow">蔵の記録帳</p><h1>みんなの仕込み</h1></div><div class="records-taru">${taru('', '番付')}${taru('', '記録')}</div></div>
+      <div class="records-head"><div><p class="eyebrow">蔵の記録帳</p><h1>みんなの仕込み</h1></div><div class="records-taru">${taru('')}${PHASE_ICONS['完成']()}</div></div>
       <div class="two-col">
         ${isLoggedIn() ? '<div><h2>自分の記録</h2><div id="mine" class="loading">読み込み中…</div></div>' : ''}
         <div><h2>番付</h2><div id="ranking" class="loading">読み込み中…</div></div>
