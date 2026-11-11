@@ -122,6 +122,7 @@ sequenceDiagram
 | DynamoDB | オンデマンド課金、GSI なし、1 年で TTL 削除 |
 | ログ | 保持期間 1 週間 |
 | CloudFront | 価格クラス 200（日本のエッジを含む）、API 応答も数秒〜1 分キャッシュ |
+| キャッシュ | JS・CSS・画像はファイル名に内容のハッシュを付けて 1 年キャッシュ。`index.html` と `config.json` は毎回更新を確認（`no-cache`）するため、デプロイ後すぐに新しい画面になる |
 | Cognito | Essentials プラン（月 1 万 MAU まで無料）。日本語のマネージドログイン画面を利用 |
 | WAF | レート制限（同一 IP から 5 分間 300 リクエスト超を遮断）＋ AWS マネージドの共通ルール ＋ 既知の不正入力ルール |
 
@@ -149,7 +150,7 @@ WAF が不要な検証環境では `-c waf=false` を付けてデプロイする
 | `api/handler.ts` | API（Lambda） |
 | `web/` | フロントエンド（TypeScript + esbuild、フレームワークなし） |
 | `web/src/auth.ts` | Cognito ログイン（認可コード + PKCE） |
-| `web/public/images/` | イラスト画像（320×320 の SVG、背景込み） |
+| `web/src/images/` | イラスト画像（320×320 の SVG、背景込み。加工せずに使う） |
 | `web/src/illustrations.ts` | 画像と画面の対応（工程・蔵人の持ち場・トップの情景） |
 | `lib/sakagura-stack.ts` | 本体スタック（`AWS_REGION` のリージョン）：CloudFront, S3, Lambda, DynamoDB, Cognito |
 | `lib/waf-stack.ts` | WAF スタック（us-east-1） |
