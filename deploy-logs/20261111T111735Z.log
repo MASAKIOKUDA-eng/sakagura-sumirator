@@ -1,0 +1,55 @@
+# cdkd deploy log
+started_at: 2026-11-11T11:17:35Z
+commit:     baee24d (main)
+region:     us-east-1（WAF スタックは us-east-1）
+caller:     arn:aws:sts::<ACCOUNT_ID>:assumed-role/EC2-Administrator-Access/i-0f97674804a3a4735
+command:    cdkd deploy --all 
+----------------------------------------
+built /home/ec2-user/sakagura-sumirator/web/dist
+Synthesizing CDK app...
+Bundling asset SakaguraSumirator/ApiFunction/Code/Stage...
+...7589206dcf727a79134f13a16998f7559d68accdeb01e07-building/index.js  33.7kb
+
+⚡ Done in 15ms
+[Warning at /SakaguraSumirator/Distribution] Ignoring 'minimumProtocolVersion': it has no effect without a custom 'certificate'. The distribution uses the CloudFront default certificate, whose security policy is fixed at TLSv1. [ack: @aws-cdk/aws-cloudfront:minimumProtocolVersionWithoutCertificate]
+
+Deploying stack: SakaguraSumirator-Waf
+No changes detected. Stack is up to date.
+
+Deployment Summary:
+  Stack: SakaguraSumirator-Waf
+  Created: 0
+  Updated: 0
+  Deleted: 0
+  Unchanged: 1
+  Duration: 0.49s
+
+Outputs:
+  SakaguraSumirator-Waf.WebAclArn = arn:aws:wafv2:us-east-1:<ACCOUNT_ID>:global/webacl/SakaguraSumirator-Waf-WebAcl-b6a5144a48a7/91e9994d-bc31-4887-8aee-2a547a18245c
+
+✓ Deployment completed successfully
+
+Deploying stack: SakaguraSumirator
+Resolved Fn::GetStackOutput: StackName=SakaguraSumirator-Waf, Region=us-east-1, OutputName=WebAclArn (literal value)
+Changes: 0 to create, 1 to update, 0 to delete
+Deploying 1 resource(s) (DAG: 7 levels, max parallel: 20)
+[1/1] ✓ DeploySiteCustomResource256MiB2424C2DD (Custom::CDKBucketDeployment) updated
+
+Deployment Summary:
+  Stack: SakaguraSumirator
+  Created: 0
+  Updated: 1
+  Deleted: 0
+  Unchanged: 25
+  Duration: 56.75s
+
+Outputs:
+  SakaguraSumirator.SiteUrl = https://d2bkwk7ltvroj5.cloudfront.net
+  SakaguraSumirator.TableName = SakaguraSumirator-BrewRecords75B3D4F6-a129c49ed205
+  SakaguraSumirator.UserPoolId = us-east-1_43hDVSIAl
+
+✓ Deployment completed successfully
+----------------------------------------
+finished_at: 2026-11-11T11:18:48Z
+duration:    71s
+result:      成功
