@@ -4,6 +4,7 @@ web/dist/
 web/public/config.json
 .cdkd/
 *.log
+!deploy-logs/*.log
 .DS_Store
 
 # BEGIN AI-DLC:gitignore
