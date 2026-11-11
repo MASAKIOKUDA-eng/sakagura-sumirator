@@ -64,7 +64,7 @@ h3 { font-size: 1rem; margin: 0 0 .3rem; }
   font-family: var(--serif); font-weight: 800; font-size: 1.3rem; color: #fff;
   text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: .12em;
 }
-.brand .mark { width: 34px; height: 34px; border-radius: 6px; }
+.brand .mark { width: 34px; height: 34px; }
 .nav { display: flex; gap: 2px; flex-wrap: wrap; }
 .nav a {
   color: #dbe3ee; text-decoration: none; padding: 4px 12px; font-size: .92rem;
@@ -156,11 +156,9 @@ input:focus-visible, .btn:focus-visible, a:focus-visible, .option:focus-within {
   border-left: 1px solid var(--hair); white-space: nowrap; background: #fff;
 }
 .calendar li:first-child { border-left: 0; }
-.calendar .cal-icon { width: 36px; height: 36px; margin: 0 auto 2px; opacity: .35; filter: grayscale(1); }
+.calendar .cal-icon { width: 36px; height: 36px; margin: 0 auto 2px; }
 .calendar li.done { color: var(--ink-2); }
-.calendar li.done .cal-icon { opacity: .8; filter: none; }
 .calendar li.now { color: var(--ink); font-weight: 700; background: var(--ai-tint); box-shadow: inset 0 -3px 0 var(--ai); }
-.calendar li.now .cal-icon { opacity: 1; filter: none; }
 
 /* ---------- 工程の画面 ---------- */
 .step-head { display: grid; grid-template-columns: 1fr 104px; gap: 16px; align-items: end; }
