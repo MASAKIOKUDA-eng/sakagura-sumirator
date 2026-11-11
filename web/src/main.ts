@@ -14,6 +14,7 @@ import {
 } from '../../shared/engine';
 import { ApiError, type BrewSummary, getBrew, listBrews, listMine, ranking, saveBrew } from './api';
 import { authEnabled, currentEmail, initAuth, isLoggedIn, login, logout } from './auth';
+import { PHASE_ICONS, ROLE_ICONS, heroScene, taru, toji } from './illustrations';
 import { barChart, moromiCharts } from './charts';
 import {
   FINISH_STEPS,
@@ -178,10 +179,11 @@ function renderHome() {
   app.append(
     h(`
     <section class="hero">
+      <h1 class="hero-title">杜氏の一季<span class="seal" aria-hidden="true">蔵</span></h1>
+      <div class="hero-copy">
       <p class="eyebrow">酒蔵シミュレーター</p>
-      <h1>杜氏の一季</h1>
-      <p class="lead">あなたは今季、この蔵の<strong>杜氏（とうじ）</strong>に任命されました。<br>
-      蔵元の注文に応えるため、米を選び、蔵人を配し、冬の間ずっと醪と向き合う――<br>
+      <p class="lead">あなたは今季、この蔵の<strong>杜氏（とうじ）</strong>に任命されました。
+      蔵元の注文に応えるため、米を選び、蔵人を配し、冬の間ずっと醪と向き合う――
       酒造りの「判断」を体験して、杜氏の仕事を知りましょう。</p>
       <form class="start-form" id="start">
         <label for="brewer">杜氏名</label>
@@ -189,12 +191,14 @@ function renderHome() {
         <button class="btn primary" type="submit">新しい仕込みを始める</button>
         ${resumable ? '<button class="btn" type="button" id="resume">続きから</button>' : ''}
       </form>
+      </div>
+      ${heroScene()}
     </section>`),
     h(`
     <section class="cards three">
-      <a class="card link" href="#/learn"><h2>杜氏の仕事を知る</h2><p>杜氏と蔵人の役割、酒造りの工程をやさしく解説します。</p></a>
-      <a class="card link" href="#/brew"><h2>仕込みを体験する</h2><p>約10の判断で一本の酒を醸します。所要時間は5分ほど。</p></a>
-      <a class="card link" href="#/records"><h2>蔵の記録帳</h2><p>みんなが醸した酒の記録と番付を見られます。</p></a>
+      <a class="card link" href="#/learn"><div class="card-icon">${ROLE_ICONS.koji()}</div><div><h2>杜氏の仕事を知る</h2><p>杜氏と蔵人の役割、酒造りの工程をやさしく解説します。</p></div></a>
+      <a class="card link" href="#/brew"><div class="card-icon">${PHASE_ICONS['醪']()}</div><div><h2>仕込みを体験する</h2><p>約10の判断で一本の酒を醸します。所要時間は5分ほど。</p></div></a>
+      <a class="card link" href="#/records"><div class="card-icon">${PHASE_ICONS['火入れ・貯蔵']()}</div><div><h2>蔵の記録帳</h2><p>みんなが醸した酒の記録と番付を見られます。</p></div></a>
     </section>`),
   );
   const form = document.getElementById('start') as HTMLFormElement;
@@ -239,7 +243,7 @@ function progressBar(screen: Screen): HTMLElement {
     <ol class="calendar" aria-label="仕込み暦">
       ${PHASES.map(
         (p, i) =>
-          `<li class="${i < current ? 'done' : i === current ? 'now' : ''}" ${i === current ? 'aria-current="step"' : ''}>${p}</li>`,
+          `<li class="${i < current ? 'done' : i === current ? 'now' : ''}" ${i === current ? 'aria-current="step"' : ''}><div class="cal-icon">${PHASE_ICONS[p]()}</div>${p}</li>`,
       ).join('')}
     </ol>`);
 }
@@ -268,12 +272,24 @@ function conditionsCard(c: Conditions): string {
     </div>`;
 }
 
+/** 工程の見出し（右に工程の挿絵） */
+function stepHead(eyebrow: string, title: string, phase: string): string {
+  const icon = PHASE_ICONS[phase];
+  return `<div class="step-head"><div><p class="eyebrow">${esc(eyebrow)}</p><h1>${esc(title)}</h1></div>${
+    icon ? `<div class="step-icon">${icon()}</div>` : ''
+  }</div>`;
+}
+
+/** 蔵人からの報告（蔵人の挿絵つき） */
+function reportBox(text: string): string {
+  return `<div class="report"><div class="report-icon">${toji('')}</div><div><p class="point-label">蔵人からの報告</p><p>${esc(text)}</p></div></div>`;
+}
+
 function renderIntro(c: Conditions) {
   app.append(
     h(`
     <section class="panel">
-      <p class="eyebrow">秋・蔵入り</p>
-      <h1>今季の仕込みが始まります</h1>
+      ${stepHead('秋・蔵入り', '今季の仕込みが始まります', '蔵入り')}
       <p>秋、稲刈りを終えた杜氏と蔵人たちが蔵にやってきます。杜氏はまず<strong>蔵元（経営者）</strong>から、今季どんな酒を造るかの注文を受けます。
       注文に応えつつ、その年の米と気候に合わせて造りを組み立てるのが杜氏の腕です。</p>
       ${conditionsCard(c)}
@@ -296,10 +312,9 @@ function renderStep(c: Conditions, step: Step) {
   const report = step.report?.(c, s.d as Partial<Decisions>);
   const panel = h(`
     <section class="panel">
-      <p class="eyebrow">${esc(step.phase)}</p>
-      <h1>${esc(step.title)}</h1>
+      ${stepHead(step.phase, step.title, step.phase)}
       <div class="point"><p class="point-label">杜氏の判断ポイント</p><p>${esc(step.point)}</p></div>
-      ${report ? `<div class="report"><p class="point-label">蔵人からの報告</p><p>${esc(report)}</p></div>` : ''}
+      ${report ? reportBox(report) : ''}
       <form class="fields"></form>
       <div class="actions">
         <button class="btn" type="button" id="back">戻る</button>
@@ -371,8 +386,7 @@ function renderMoromi(c: Conditions, index: number) {
 
   const panel = h(`
     <section class="panel">
-      <p class="eyebrow">醪・${MOROMI_STAGES[index]}</p>
-      <h1>醪の温度管理（${index + 1} / 3）</h1>
+      ${stepHead(`醪・${MOROMI_STAGES[index]}`, `醪の温度管理（${index + 1} / 3）`, '醪')}
       ${index === 0 ? `<div class="point"><p class="point-label">杜氏の判断ポイント</p><p>${esc(MOROMI_POINT)}</p></div>` : ''}
       <dl class="readings">
         <div><dt>日数</dt><dd>${days[index]}日目まで</dd></div>
@@ -381,7 +395,7 @@ function renderMoromi(c: Conditions, index: number) {
         <div><dt>ボーメ</dt><dd>${last.baume}</dd></div>
         <div><dt>アルコール</dt><dd>${last.alcohol}%</dd></div>
       </dl>
-      <div class="report"><p class="point-label">蔵人からの報告</p><p>${esc(reportText)}</p></div>
+      ${reportBox(reportText)}
       <div class="chart-slot"></div>
       <form class="fields">
         <fieldset><legend>タンクの温度操作</legend><div class="options three">
@@ -516,6 +530,7 @@ function resultView(c: Conditions, r: BrewResult, meta: { sakeName: string; brew
     <section class="panel result">
       <p class="eyebrow">${meta ? '蔵の記録帳' : '皆造（かいぞう）――今季の造りを終えて'}</p>
       <div class="label-card">
+        <div class="label-taru">${taru('', '新酒')}</div>
         <div class="label-main">
           <p class="label-class">${esc(r.className)}</p>
           <p class="label-name">${meta ? esc(meta.sakeName) : '（銘柄未定）'}</p>
@@ -523,7 +538,7 @@ function resultView(c: Conditions, r: BrewResult, meta: { sakeName: string; brew
         </div>
         <div class="score">
           <span class="rank">${esc(r.rank)}</span>
-          <span class="score-num">${r.score}</span><span class="score-unit">点</span>
+          <span class="score-num">${r.score}<span class="score-unit">点</span></span>
         </div>
       </div>
       <p class="order-line">注文：「${esc(o.title)}」 ／ 米：${HARDNESS_LABEL[c.hardness]} ／ 冬：${WINTER_LABEL[c.winter]}</p>
@@ -537,7 +552,7 @@ function resultView(c: Conditions, r: BrewResult, meta: { sakeName: string; brew
         <div><dt>原価指数</dt><dd>${r.costIndex}</dd></div>
         <div><dt>タイプ</dt><dd>${esc(r.flavorType)}</dd></div>
       </dl>
-      <p class="tip">おすすめの飲み方：${esc(r.servingTip)}</p>
+      <p class="tip"><span class="tip-icon">${PHASE_ICONS['完成']()}</span><span>おすすめの飲み方：${esc(r.servingTip)}</span></p>
       <div class="chart-grid"></div>
       <h2>杜氏の振り返り</h2>
       <ul class="feedback">
@@ -564,14 +579,16 @@ function resultView(c: Conditions, r: BrewResult, meta: { sakeName: string; brew
 // ---------- 解説 ----------
 
 function renderLearn() {
-  const roles = Object.values(ROLE_INFO)
-    .map((r) => `<div class="role"><h3>${esc(r.name)}<small>${esc(r.reading)}</small></h3><p>${esc(r.desc)}</p></div>`)
+  const roles = Object.entries(ROLE_INFO)
+    .map(
+      ([key, r]) =>
+        `<div class="role"><div class="role-icon">${ROLE_ICONS[key]?.() ?? ''}</div><div><h3>${esc(r.name)}<small>${esc(r.reading)}</small></h3><p>${esc(r.desc)}</p></div></div>`,
+    )
     .join('');
   app.append(
     h(`
     <section class="panel prose">
-      <p class="eyebrow">杜氏の仕事を知る</p>
-      <h1>杜氏とは</h1>
+      <div class="learn-head"><div><p class="eyebrow">杜氏の仕事を知る</p><h1>杜氏とは</h1></div><div class="learn-toji">${toji()}</div></div>
       <p><strong>杜氏（とうじ）</strong>は、酒蔵で酒造りを取り仕切る製造の最高責任者です。蔵の持ち主である<strong>蔵元</strong>から「どんな酒を造るか」の注文を受け、
       <strong>蔵人（くらびと）</strong>と呼ばれる職人たちを率いて、米の処理から搾り・貯蔵までのすべてを指揮します。</p>
       <p>酒造りは生き物（麹菌・酵母）相手の仕事です。同じ品種の米でも年によって硬さが違い、冬の寒さも毎年変わります。
@@ -623,8 +640,7 @@ function recordRows(items: BrewSummary[], withRank: boolean): string {
 async function renderRecords() {
   const panel = h(`
     <section class="panel">
-      <p class="eyebrow">蔵の記録帳</p>
-      <h1>みんなの仕込み</h1>
+      <div class="records-head"><div><p class="eyebrow">蔵の記録帳</p><h1>みんなの仕込み</h1></div><div class="records-taru">${taru('', '番付')}${taru('', '記録')}</div></div>
       <div class="two-col">
         ${isLoggedIn() ? '<div><h2>自分の記録</h2><div id="mine" class="loading">読み込み中…</div></div>' : ''}
         <div><h2>番付</h2><div id="ranking" class="loading">読み込み中…</div></div>

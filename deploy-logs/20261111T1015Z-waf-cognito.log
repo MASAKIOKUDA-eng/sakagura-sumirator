@@ -1,0 +1,47 @@
+# cdkd deploy log（WAF・Cognito 追加時のデプロイ。記録が残っていたのは出力の末尾 40 行のみ）
+started_at: 2026-11-11T10:15Z ごろ
+commit:     749ca75 (feature/waf-cognito)
+region:     us-east-1
+command:    cdkd deploy --all --full-wait
+----------------------------------------
+Deployment Summary:
+  Stack: SakaguraSumirator-Waf
+  Created: 1
+  Updated: 0
+  Deleted: 0
+  Unchanged: 0
+  Duration: 1.13s
+
+Outputs:
+  SakaguraSumirator-Waf.WebAclArn = arn:aws:wafv2:us-east-1:<ACCOUNT_ID>:global/webacl/SakaguraSumirator-Waf-WebAcl-b6a5144a48a7/91e9994d-bc31-4887-8aee-2a547a18245c
+
+✓ Deployment completed successfully
+
+Deploying stack: SakaguraSumirator
+Resolved Fn::GetStackOutput: StackName=SakaguraSumirator-Waf, Region=us-east-1, OutputName=WebAclArn (literal value)
+Changes: 4 to create, 3 to update, 0 to delete
+Deploying 7 resource(s) (DAG: 7 levels, max parallel: 20)
+Resolved Fn::GetStackOutput: StackName=SakaguraSumirator-Waf, Region=us-east-1, OutputName=WebAclArn (literal value)
+[1/7] ✓ Users0A0EEA89 (AWS::Cognito::UserPool) created
+[2/7] ✓ ApiFunctionCE271BD4 (AWS::Lambda::Function) updated
+[3/7] ✓ UsersLoginDomain920528C5 (AWS::Cognito::UserPoolDomain) created
+[4/7] ✓ Distribution830FAC52 (AWS::CloudFront::Distribution) updated
+[5/7] ✓ UsersWebClient8EE36D42 (AWS::Cognito::UserPoolClient) created
+[6/7] ✓ LoginBranding (AWS::Cognito::ManagedLoginBranding) created
+[7/7] ✓ DeploySiteCustomResource256MiB2424C2DD (Custom::CDKBucketDeployment) updated
+
+Deployment Summary:
+  Stack: SakaguraSumirator
+  Created: 4
+  Updated: 3
+  Deleted: 0
+  Unchanged: 19
+  Duration: 100.63s
+
+Outputs:
+  SakaguraSumirator.SiteUrl = https://d2bkwk7ltvroj5.cloudfront.net
+  SakaguraSumirator.TableName = SakaguraSumirator-BrewRecords75B3D4F6-a129c49ed205
+  SakaguraSumirator.UserPoolId = us-east-1_43hDVSIAl
+
+✓ Deployment completed successfully
+
