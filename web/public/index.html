@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>杜氏の一季 | 酒蔵シミュレーター</title>
   <meta name="description" content="杜氏（とうじ）になって酒造りの判断を体験し、杜氏と蔵人の役割を学べる酒蔵シミュレーター。">
-  <meta name="theme-color" content="#24466b">
+  <meta name="theme-color" content="#1f3a5f">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,8 @@
 <body>
   <a class="skip" href="#app">本文へ移動</a>
   <header class="site-header">
-    <a class="brand" href="#/"><span class="mark" aria-hidden="true"></span>杜氏の一季</a>
+    <div class="header-inner">
+    <a class="brand" href="#/"><svg class="mark" viewBox="0 0 60 80" aria-hidden="true"><line x1="30" y1="0" x2="30" y2="18" stroke="#fff" stroke-width="3"/><circle cx="30" cy="44" r="24" fill="#5b7a3a" stroke="#fff" stroke-width="2.5"/><path d="M20 40 l5 -6 l5 6 M32 48 l5 -6 l5 6 M22 54 l5 -6 l5 6" stroke="#dfe8cf" stroke-width="2" fill="none"/></svg>杜氏の一季</a>
     <nav class="nav" aria-label="メイン">
       <a href="#/" data-route="home">ホーム</a>
       <a href="#/learn" data-route="learn">杜氏の仕事</a>
@@ -24,6 +25,7 @@
       <a href="#/records" data-route="records">記録帳</a>
     </nav>
     <div class="account" id="account" aria-live="polite"></div>
+    </div>
   </header>
   <main id="app" tabindex="-1"></main>
   <footer class="site-footer">
