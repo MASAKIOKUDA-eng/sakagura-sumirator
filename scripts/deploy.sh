@@ -19,7 +19,7 @@ log_file="$LOG_DIR/$stamp.log"
 region=${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-northeast-1}}
 commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)
-dirty=$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo " (未コミットの変更あり)" || echo "")
+dirty=$([ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] && echo " (未コミットの変更あり)" || echo "")
 account=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
 caller=$(aws sts get-caller-identity --query Arn --output text 2>/dev/null || echo "unknown")
 
