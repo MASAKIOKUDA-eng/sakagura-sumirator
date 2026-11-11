@@ -12,16 +12,105 @@ JAWS FESTA 2026 前日イベント（酒蔵見学）から着想を得たアプ�
 - 結果は「蔵の記録帳」（DynamoDB）に保存され、番付で競えます
 - 体験・解説・記録帳の閲覧はログイン不要。記録の保存と「自分の記録」にはログイン（メールで自己登録）が必要です
 
-## 構成（サーバーレス・低コスト）
+## アプリのこだわり
 
+### 1. 「知識」ではなく「判断」を体験する
+
+杜氏の仕事の本質は、その年ごとに変わる条件を読み、蔵元の注文に合う酒へ仕上げる「判断の連続」です。
+そこで、工程を読ませるだけでなく、毎回異なる条件のもとで自分で決めてもらう作りにしました。
+
+- **蔵元の注文 × その年の条件**：鑑評会用の大吟醸、食中酒、燗酒、晩酌酒の 4 つの注文と、米の硬さ（3 段階）・冬の寒さ（3 段階）の組み合わせが毎回変わります。同じ答えが毎年正解にはなりません
+- **蔵人からの報告**：「今年の米は硬い」「暖冬で生酛系は雑菌が心配」など、現場の声をヒントに状況を読み取ります
+- **蔵人の配置**：ベテランを釜屋・麹屋・酛屋・頭のどこに置くかを最初に決めます。チームを率いる杜氏の役割と、持ち場ごとの仕事を体感できます
+- **醪の温度管理**：品温とボーメ（糖分の目安）の推移をグラフで見ながら、3 回にわたってタンクを冷やす・保つ・温めるを決めます
+
+### 2. 結果から「なぜ」を学べる
+
+- **杜氏の振り返り**：浸漬・製麹・酒母・醪・注文への適合について、うまくいった点と失敗の理由を工程ごとに説明します（例：「吸水させすぎて蒸米が柔らかくなり、雑味が出ました」）
+- **本物の用語と指標**：限定吸水、突きハゼ・総ハゼ、生酛・山廃、袋吊り、特定名称（純米大吟醸〜本醸造）、日本酒度・酸度・アミノ酸度など、酒蔵見学で耳にする言葉をそのまま使っています
+- **解説ページ**：杜氏・蔵人の役割、酒造りの流れ、南部・越後・但馬などの杜氏の流派と、蔵元杜氏・社員杜氏といった現在の姿を紹介します
+- 数値は理解のための簡略モデルであることを画面に明記しています
+
+### 3. 遊びとして成り立つバランス
+
+- **評価の考え方**：綺麗さ（造りの確かさ）45% ＋ 注文への適合 45% ＋ 個性 10%。高級な材料を使えば勝てるのではなく、注文に応える力を評価します
+- **原価の考え方**：精米歩合を下げる（よく磨く）ほど原価が急に上がるようにしました。そのため「晩酌酒を 35% 精米で造る」ような現実離れした造りは評価されません
+- **難易度の確認**：注文と冬の条件の組み合わせごとに 4 万通りの判断をランダムに試し、最高点が 88〜98 点、ランダムな操作の中央値が 34〜69 点になることを確かめています
+- **同じ年に再挑戦**：条件は乱数のシード（種）から決まるため、「同じ年でやり直す」や、他の人の記録と同じ年への挑戦ができます
+- **番付**：上位は横綱・大関・関脇・小結…と相撲の番付風に表示します
+
+### 4. 公平で信頼できる記録
+
+- 醸造シミュレーションのコード（`shared/engine.ts`）を、ブラウザと Lambda でまったく同じものとして共有しています
+- 記録を保存するときは、ブラウザが送った点数を使わず、サーバーが判断内容から計算し直します。点数の改ざんはできません
+- 入力値はすべてサーバーで検証し、他の利用者の ID は API の応答に含めません
+
+### 5. 気軽に使えて、安全
+
+- **ログインは保存するときだけ**：体験・解説・記録帳の閲覧はログイン不要です。保存時にログインしても、結果画面はそのまま残ります
+- **パスワードを預からない**：ログインと新規登録は Cognito の日本語ログイン画面で行い、パスワードはアプリを通りません
+- **多層の防御**：WAF（大量アクセスの遮断・一般的な攻撃の検知）→ CloudFront → OAC（S3 と Lambda は CloudFront 経由でしか呼べない）→ Lambda でのトークン・入力検証
+- **スマートフォン対応・ダークモード対応**：キーボード操作や読み上げにも配慮しています
+
+### 6. 低コストで、すぐ作り直せる
+
+- **常時起動のサーバーなし**：API Gateway も使わず、Lambda Function URL を CloudFront の背後に置いています。固定費は WAF の約 8 USD/月のみで、外すこともできます
+- **cdkd で高速デプロイ**：CloudFormation を介さず AWS SDK で直接デプロイします。Cognito 一式の追加を含む更新が約 100 秒で終わりました
+- **AI-DLC で開発**：要件・設計判断（ADR）・テスト結果を [aidlc-docs/](aidlc-docs/README.md) に残しています
+
+### 7. 酒蔵らしい見た目
+
+- 和紙色の背景、藍と朱の差し色、見出しの明朝体で、酒蔵の落ち着いた雰囲気に寄せています
+- 結果は酒瓶のラベル風に表示し、仕込みの進み具合は「仕込み暦」（蔵入り → 原料処理 → 製麹 → 酒母 → 醪 → 上槽 → 火入れ・貯蔵）で示します
+
+## 公開環境
+
+https://d2bkwk7ltvroj5.cloudfront.net （us-east-1 にデプロイ）
+
+## アーキテクチャ
+
+![杜氏の一季のアーキテクチャ図。利用者は AWS WAF と Amazon CloudFront を経由し、静的サイトは Amazon S3、API は AWS Lambda（Function URL）に届く。Lambda は Amazon DynamoDB に記録を読み書きし、Amazon Cognito の公開鍵でトークンを検証する。ログインは Amazon Cognito で行う](docs/images/architecture.png)
+
+| 経路 | 内容 |
+| --- | --- |
+| 利用者 → WAF → CloudFront | すべてのアクセスは HTTPS で CloudFront に届き、WAF がレート制限と攻撃の検知を行う |
+| CloudFront → S3（`/*`） | 静的サイトと `config.json`。S3 は非公開で、OAC により CloudFront からのみ読める |
+| CloudFront → Lambda（`/api/*`） | API。Function URL は IAM 認証で、OAC が SigV4 で署名したリクエストだけを受け付ける |
+| Lambda → DynamoDB | 蔵の記録帳の読み書き |
+| 利用者 → Cognito | ログイン・新規登録（認可コード + PKCE）。Lambda は Cognito の公開鍵でアクセストークンを検証 |
+
+### 記録を保存するときの流れ
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as 利用者
+    participant W as ブラウザ（アプリ）
+    participant C as Cognito
+    participant F as CloudFront + WAF
+    participant L as Lambda
+    participant D as DynamoDB
+
+    U->>W: 結果画面で「記録する」
+    W->>C: 未ログインならログイン画面へ（PKCE）
+    C-->>W: 認可コード
+    W->>C: コードをトークンに交換
+    C-->>W: アクセストークン
+    W->>F: POST /api/brews（x-auth-token, 本文の SHA-256）
+    F->>L: OAC で署名して転送
+    L->>L: トークン検証・入力検証・結果をサーバーで再計算
+    L->>D: 記録と「自分の記録」用の要約を同時に保存
+    L-->>W: 201 Created
 ```
-                 WAF（us-east-1）
-                     │
-ブラウザ ─▶ CloudFront ─┬─ /*     ─▶ S3（非公開・OAC）           静的サイト
-   │                    └─ /api/* ─▶ Lambda Function URL（IAM・OAC）─▶ DynamoDB（オンデマンド・TTL）
-   │                                    └ アクセストークンを検証
-   └─▶ Cognito マネージドログイン（日本語）  … ログイン・新規登録（認可コード + PKCE）
-```
+
+### デプロイの構成
+
+![cdkd によるデプロイの構成図。開発者が npm run deploy を実行すると esbuild でビルドし、cdkd が CloudFormation を使わず AWS SDK で直接デプロイする。デプロイ状態は cdkd の状態バケット（S3）に保存される。WAF スタックを先にデプロイし、本体スタックは Fn::GetStackOutput で WAF の ARN を参照する](docs/images/deploy.png)
+
+図は AWS 公式の [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/)（2026-07-31 版）で作成しています。
+[docs/diagrams/build-diagrams.mjs](docs/diagrams/build-diagrams.mjs) で再生成できます（手順はファイル先頭のコメントを参照）。
+
+## 構成の工夫（サーバーレス・低コスト）
 
 | 工夫 | 内容 |
 | --- | --- |
@@ -58,9 +147,10 @@ WAF が不要な検証環境では `-c waf=false` を付けてデプロイする
 | `api/handler.ts` | API（Lambda） |
 | `web/` | フロントエンド（TypeScript + esbuild、フレームワークなし） |
 | `web/src/auth.ts` | Cognito ログイン（認可コード + PKCE） |
-| `lib/sakagura-stack.ts` | 本体スタック（東京）：CloudFront, S3, Lambda, DynamoDB, Cognito |
+| `lib/sakagura-stack.ts` | 本体スタック（`AWS_REGION` のリージョン）：CloudFront, S3, Lambda, DynamoDB, Cognito |
 | `lib/waf-stack.ts` | WAF スタック（us-east-1） |
 | `test/` | Vitest のテスト |
+| `docs/` | アーキテクチャ図（`images/`）と図の生成スクリプト（`diagrams/`） |
 | `aidlc-docs/` | AI-DLC の成果物（要件・設計・ユニット・テスト） |
 
 ## 使い方
@@ -79,16 +169,17 @@ npm run dev           # http://localhost:8000 でフロントを確認（ログ�
 cdkd 自体は開発・検証用途向け（本番は通常の `cdk deploy` を推奨）と案内されています。
 
 ```bash
-export AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1
+export AWS_PROFILE=<profile> AWS_REGION=us-east-1   # 公開環境は us-east-1（未指定時の既定は ap-northeast-1）
 aws sts get-caller-identity   # デプロイ先アカウントを確認
 
 npx cdkd bootstrap            # 初回のみ（cdkd の状態保存用 S3 バケットを作成）
 npm run diff                  # 変更内容の確認
-npm run deploy                # フロントをビルドし、WAF（us-east-1）→ 本体（東京）の順にデプロイ
+npm run deploy                # フロントをビルドし、WAF（us-east-1）→ 本体（AWS_REGION）の順にデプロイ
 npm run deploy:fast           # 安定化待ちを省略してさらに高速に
 ```
 
 `SiteUrl` は CloudFront の配信開始後（数分）に表示できるようになります。
+公開環境を更新するときは、必ず `AWS_REGION=us-east-1` を指定してください（別のリージョンを指定すると、もう 1 つ別の環境ができます）。
 WAF の ARN は `Fn::GetStackOutput` でリージョンをまたいで参照しています（us-east-1 の cdkd 用アセット保存先は初回デプロイ時に自動作成されます）。
 
 | オプション（`-c key=value`） | 既定 | 内容 |
