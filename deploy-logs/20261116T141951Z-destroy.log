@@ -1,0 +1,93 @@
+# cdkd destroy log
+started_at: 2026-11-16T14:19:51Z
+commit:     f933171 (main)
+region:     us-east-1
+caller:     arn:aws:sts::<ACCOUNT_ID>:assumed-role/EC2-Administrator-Access/i-0f97674804a3a4735
+command:    cdkd destroy --all --force（記録・ユーザーも削除。cdkd の管理用バケットは残す）
+----------------------------------------
+Starting stack destruction...
+Bundling asset SakaguraSumirator/ApiFunction/Code/Stage...
+...7589206dcf727a79134f13a16998f7559d68accdeb01e07-building/index.js  33.7kb
+
+⚡ Done in 16ms
+Found 2 stack(s) to destroy: SakaguraSumirator, SakaguraSumirator-Waf
+
+Preparing to destroy stack: SakaguraSumirator
+
+Resources to be deleted (28):
+  - DistributionOrigin2FunctionUrlOriginAccessControlAC8EE0B1 (AWS::CloudFront::OriginAccessControl)
+  - DistributionOrigin1S3OriginAccessControlEB606076 (AWS::CloudFront::OriginAccessControl)
+  - ApiLogs3D05D88B (AWS::Logs::LogGroup)
+  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092 (AWS::IAM::Role)
+  - ApiFunctionServiceRole52B9747B (AWS::IAM::Role)
+  - CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiBServiceRoleF991ED9F (AWS::IAM::Role)
+  - SiteBucket397A1860 (AWS::S3::Bucket)
+  - CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiBServiceRoleDefaultPolicyE5468F0E (AWS::IAM::Policy)
+  - ApiCachePolicyF71AA3E6 (AWS::CloudFront::CachePolicy)
+  - DeploySiteAwsCliLayer88B0EBE2 (AWS::Lambda::LayerVersion)
+  - BrewRecords75B3D4F6 (AWS::DynamoDB::Table)
+  - ApiFunctionServiceRoleDefaultPolicy20A32B8D (AWS::IAM::Policy)
+  - ApiFunctionCE271BD4 (AWS::Lambda::Function)
+  - ApiFunctionFunctionUrl73AD62DC (AWS::Lambda::Url)
+  - CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiB5F7BD223 (AWS::Lambda::Function)
+  - Distribution830FAC52 (AWS::CloudFront::Distribution)
+  - SiteBucketPolicy3AC1D0F8 (AWS::S3::BucketPolicy)
+  - DistributionOrigin2InvokeFunctionFromCloudFrontForSakaguraSumiratorDistributionOrigin25DEB540850C10A41 (AWS::Lambda::Permission)
+  - DistributionOrigin2InvokeFromApiForSakaguraSumiratorDistributionOrigin25DEB540874489335 (AWS::Lambda::Permission)
+  - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F (AWS::Lambda::Function)
+  - SiteBucketAutoDeleteObjectsCustomResource9585E968 (Custom::S3AutoDeleteObjects)
+  - DeploySiteCustomResource256MiB2424C2DD (Custom::CDKBucketDeployment)
+  - Users0A0EEA89 (AWS::Cognito::UserPool)
+  - UsersLoginDomain920528C5 (AWS::Cognito::UserPoolDomain)
+  - UsersWebClient8EE36D42 (AWS::Cognito::UserPoolClient)
+  - LoginBranding (AWS::Cognito::ManagedLoginBranding)
+  - DeployAssetsAwsCliLayer986E51B7 (AWS::Lambda::LayerVersion)
+  - DeployAssetsCustomResource256MiBAD7FBCF5 (Custom::CDKBucketDeployment)
+
+Acquiring lock for stack SakaguraSumirator...
+Building dependency graph...
+  ✓ SiteBucketAutoDeleteObjectsCustomResource9585E968 (Custom::S3AutoDeleteObjects) deleted
+  ✓ LoginBranding (AWS::Cognito::ManagedLoginBranding) deleted
+  ✓ DeploySiteCustomResource256MiB2424C2DD (Custom::CDKBucketDeployment) deleted
+  ✓ DistributionOrigin2InvokeFunctionFromCloudFrontForSakaguraSumiratorDistributionOrigin25DEB540850C10A41 (AWS::Lambda::Permission) deleted
+  ✓ DistributionOrigin2InvokeFromApiForSakaguraSumiratorDistributionOrigin25DEB540874489335 (AWS::Lambda::Permission) deleted
+  ✓ SiteBucketPolicy3AC1D0F8 (AWS::S3::BucketPolicy) deleted
+  ✓ UsersWebClient8EE36D42 (AWS::Cognito::UserPoolClient) deleted
+  ✓ Distribution830FAC52 (AWS::CloudFront::Distribution) deleted
+  ✓ ApiFunctionFunctionUrl73AD62DC (AWS::Lambda::Url) deleted
+  ✓ DeployAssetsCustomResource256MiBAD7FBCF5 (Custom::CDKBucketDeployment) deleted
+  ✓ CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiB5F7BD223 (AWS::Lambda::Function) deleted
+  ✓ ApiFunctionCE271BD4 (AWS::Lambda::Function) deleted
+  ✓ ApiFunctionServiceRoleDefaultPolicy20A32B8D (AWS::IAM::Policy) deleted
+  ✓ CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiBServiceRoleDefaultPolicyE5468F0E (AWS::IAM::Policy) deleted
+  ✓ CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F (AWS::Lambda::Function) deleted
+  ✓ UsersLoginDomain920528C5 (AWS::Cognito::UserPoolDomain) deleted
+  ✓ DeployAssetsAwsCliLayer986E51B7 (AWS::Lambda::LayerVersion) deleted
+  ✓ DistributionOrigin1S3OriginAccessControlEB606076 (AWS::CloudFront::OriginAccessControl) deleted
+  ✓ DeploySiteAwsCliLayer88B0EBE2 (AWS::Lambda::LayerVersion) deleted
+  ✓ ApiLogs3D05D88B (AWS::Logs::LogGroup) deleted
+  ✓ DistributionOrigin2FunctionUrlOriginAccessControlAC8EE0B1 (AWS::CloudFront::OriginAccessControl) deleted
+  ✓ Users0A0EEA89 (AWS::Cognito::UserPool) deleted
+  ✓ ApiFunctionServiceRole52B9747B (AWS::IAM::Role) deleted
+  ✓ CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C256MiBServiceRoleF991ED9F (AWS::IAM::Role) deleted
+  ✓ SiteBucket397A1860 (AWS::S3::Bucket) deleted
+  ✓ CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092 (AWS::IAM::Role) deleted
+  ✓ ApiCachePolicyF71AA3E6 (AWS::CloudFront::CachePolicy) deleted
+  ✓ BrewRecords75B3D4F6 (AWS::DynamoDB::Table) deleted
+
+✓ Stack SakaguraSumirator destroyed (28 deleted, 0 errors)
+
+Preparing to destroy stack: SakaguraSumirator-Waf
+
+Resources to be deleted (1):
+  - WebAcl (AWS::WAFv2::WebACL)
+
+Acquiring lock for stack SakaguraSumirator-Waf...
+Building dependency graph...
+  ✓ WebAcl (AWS::WAFv2::WebACL) deleted
+
+✓ Stack SakaguraSumirator-Waf destroyed (1 deleted, 0 errors)
+----------------------------------------
+finished_at: 2026-11-16T14:23:35Z
+duration:    224s
+result:      成功

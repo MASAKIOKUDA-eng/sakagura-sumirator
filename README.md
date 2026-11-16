@@ -67,7 +67,8 @@ JAWS FESTA 2026 前日イベント（酒蔵見学）から着想を得たアプ�
 
 ## 公開環境
 
-https://d2bkwk7ltvroj5.cloudfront.net （us-east-1 にデプロイ）
+2026-11-16 に公開環境（us-east-1）を削除しました。記録と登録ユーザーも削除済みです（[削除ログ](deploy-logs/20261116T141951Z-destroy.log)）。
+もう一度公開する場合は、下の「cdkd でデプロイ」の手順で作り直せます（cdkd の管理用バケットは残しているので `cdkd bootstrap` は不要）。
 
 ## アーキテクチャ
 
